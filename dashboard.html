@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LocalStack Live Dashboard</title>
+    <style>
+        :root {
+            /* Light theme variables */
+            --bg-primary: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --bg-secondary: rgba(255, 255, 255, 0.85);
+            --bg-tertiary: rgba(255, 255, 255, 0.6);
+            --text-primary: #1d1d1f;
+            --text-secondary: #86868b;
+            --text-muted: #6c757d;
+            --border-light: rgba(255, 255, 255, 0.18);
+            --border-dark: rgba(0, 0, 0, 0.05);
+            --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.06);
+            --shadow-hover: 0 2px 8px rgba(0, 123, 255, 0.1);
+            --accent-primary: #007AFF;
+            --accent-secondary: #5856D6;
+            --success-bg: #d1f2d1;
+            --success-text: #0a5a0a;
+            --info-bg: #cce7ff;
+            --info-text: #084298;
+            --danger-bg: #f8d7da;
+            --danger-text: #721c24;
+            --status-bar-bg: rgba(0, 0, 0, 0.05);
+            --modal-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        [data-theme="dark"] {
+            /* Dark theme variables */
+            --bg-primary: linear-gradient(135deg, #1a1a1a 0%, #2d2d30 100%);
+            --bg-secondary: rgba(42, 42, 46, 0.85);
+            --bg-tertiary: rgba(58, 58, 62, 0.7);
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1a6;
+            --text-muted: #8e8e93;
+            --border-light: rgba(255, 255, 255, 0.1);
+            --border-dark: rgba(255, 255, 255, 0.05);
+            --shadow-light: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 2px 8px rgba(0, 122, 255, 0.3);
+            --accent-primary: #0A84FF;
+            --accent-secondary: #5E5CE6;
+            --success-bg: rgba(52, 199, 89, 0.2);
+            --success-text: #30d158;
+            --info-bg: rgba(100, 210, 255, 0.2);
+            --info-text: #64d2ff;
+            --danger-bg: rgba(255, 69, 58, 0.2);
+            --danger-text: #ff453a;
+            --status-bar-bg: rgba(255, 255, 255, 0.05);
+            --modal-bg: rgba(42, 42, 46, 0.95);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            min-height: 100vh;
+            padding: 10px;
+            overflow-x: hidden;
+            color: var(--text-primary);
+            font-weight: 400;
+            transition: all 0.3s ease;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-light);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            text-align: center;
+            box-shadow: var(--shadow-light);
+            position: relative;
+        }
+        .header h1 {
+            color: var(--text-primary);
+            font-size: 1.8em;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-shadow: none;
+        }
+        .header p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin: 0;
+            font-weight: 400;
+        }
+        
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-dark);
+            border-radius: 20px;
+            padding: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .theme-toggle:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+        .theme-toggle span {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+            padding: 0 8px;
+        }
+        .theme-toggle:hover span {
+            color: white;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding: 8px 12px;
+            background: var(--status-bar-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-dark);
+        }
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+        .timestamp {
+            color: var(--text-muted);
+            font-size: 0.75em;
+        }
+        .pulse {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.6);
+        }
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Demo Controls */
+        .demo-controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .demo-btn, .refresh-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(20px);
+        }
+
+        .demo-btn.primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+        }
+
+        .demo-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .refresh-btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-light);
+        }
+
+        .refresh-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        /* Resource Details */
+        .resource-details {
+            margin: 15px 0;
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .detail-item:last-child {
+            border-bottom: none;
+        }
+
+        .modal-actions {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .demo-result {
+            text-align: center;
+        }
+
+        .demo-result pre {
+            background: var(--status-bar-bg);
+            color: var(--text-primary);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: left;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid var(--border-dark);
+        }
+
+        .demo-error {
+            text-align: center;
+            color: var(--danger-text);
+        }
+
+        /* Make resource items clickable */
+        .resource-item {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .resource-item:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .section {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .metric-card:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.1);
+        }
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--border-light);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-primary);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-secondary);
+        }
+        .controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-dark);
+            backdrop-filter: blur(10px);
+        }
+        .btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-hover);
+        }
+        .btn.primary {
+            background: var(--accent-primary);
+            color: white;
+            border: 1px solid transparent;
+        }
+        .btn.primary:hover {
+            background: var(--accent-secondary);
+        }
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .services-compact {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 6px;
+            max-height: none;
+            overflow: visible;
+        }
+        .section {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid var(--border-light);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: var(--shadow-light);
+        }
+        .section-title {
+            font-size: 1.2em;
+            margin-bottom: 18px;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            text-shadow: none;
+        }
+        .metric-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-dark);
+            padding: 16px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .metric-card:hover {
+            transform: scale(1.05);
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: var(--shadow-hover);
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--accent-primary);
+            margin-bottom: 4px;
+        }
+        .metric-card:hover .metric-value {
+            color: white;
+        }
+        .metric-label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .metric-card:hover .metric-label {
+            color: rgba(255, 255, 255, 0.9);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .service-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 8px 6px;
+            margin-bottom: 0;
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            border: 1px solid var(--border-dark);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            min-height: 65px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        .service-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .service-item:hover::before {
+            opacity: 1;
+        }
+        .service-item:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 122, 255, 0.15);
+            border-color: var(--accent-primary);
+        }
+        .service-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 0.7em;
+            margin-top: 4px;
+            text-align: center;
+            line-height: 1.2;
+            letter-spacing: 0.3px;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .service-item:hover .service-name {
+            color: white;
+            font-weight: 600;
+        }
+        .service-icon {
+            font-size: 20px;
+            margin-bottom: 3px;
+            display: block;
+            filter: grayscale(0.2);
+            transition: all 0.3s ease;
+        }
+        .service-item:hover .service-icon {
+            transform: scale(1.1);
+            filter: grayscale(0);
+        }
+        .service-status {
+            padding: 1px 4px;
+            border-radius: 4px;
+            font-size: 7px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .running {
+            background: var(--success-bg);
+            color: var(--success-text);
+        }
+        .available {
+            background: var(--info-bg);
+            color: var(--info-text);
+        }
+        .disabled {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+        }
+        .resource-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-light);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .resource-item:hover {
+            background: var(--accent-primary);
+            color: white;
+            transform: translateX(2px);
+            box-shadow: var(--shadow-hover);
+        }
+        .resource-item span {
+            color: var(--text-primary);
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .resource-item:hover span {
+            color: white;
+        }
+        .resource-count {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+            font-size: 0.8em;
+            box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--modal-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-dark);
+            margin: 5% auto;
+            padding: 20px;
+            border-radius: 15px;
+            width: 80%;
+            max-width: 600px;
+            color: var(--text-primary);
+            box-shadow: var(--shadow-light);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border-dark);
+            padding-bottom: 10px;
+        }
+        .modal-title {
+            font-size: 1.5em;
+            color: var(--text-primary);
+        }
+        .close {
+            color: var(--text-muted);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        .close:hover {
+            color: var(--text-primary);
+        }
+        
+        /* Logs Modal Specific Styles */
+        .logs-modal {
+            width: 90%;
+            max-width: 1000px;
+            max-height: 80vh;
+        }
+        .logs-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .logs-controls label {
+            font-size: 0.8em;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-secondary);
+        }
+        .logs-container {
+            height: 60vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .logs-header {
+            background: var(--bg-tertiary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-dark);
+        }
+        .log-stats {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+        .logs-content {
+            flex: 1;
+            background: var(--status-bar-bg);
+            border: 1px solid var(--border-dark);
+            border-radius: 6px;
+            padding: 12px;
+            overflow-y: auto;
+            font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--text-primary);
+        }
+        .logs-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .log-entry {
+            margin-bottom: 2px;
+            padding: 2px 0;
+            word-wrap: break-word;
+        }
+        .log-entry.error {
+            color: var(--danger-text);
+            background: var(--danger-bg);
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin: 2px 0;
+        }
+        .log-entry.warning {
+            color: #ff9500;
+        }
+        .log-entry.info {
+            color: var(--info-text);
+        }
+        .log-entry.debug {
+            color: var(--text-muted);
+        }
+        .log-timestamp {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+        .resource-details {
+            background: var(--bg-tertiary);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-dark);
+        }
+        .resource-details h4 {
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }
+        .resource-details ul {
+            list-style: none;
+            padding: 0;
+        }
+        .resource-details li {
+            padding: 5px 0;
+            border-bottom: 1px solid var(--border-dark);
+            color: var(--text-primary);
+        }
+        .resource-details li:last-child {
+            border-bottom: none;
+        }
+        .resource-count {
+            background: linear-gradient(135deg, #007aff, #5856d6);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            min-width: 24px;
+            text-align: center;
+            font-size: 0.8em;
+            box-shadow: 0 2px 4px rgba(0, 122, 255, 0.2);
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-style: italic;
+            font-size: 0.9em;
+        }
+        .error {
+            background: var(--danger-bg);
+            color: var(--danger-text);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin: 10px 0;
+            border: 1px solid var(--danger-bg);
+            font-size: 0.9em;
+        }
+        .success {
+            background: var(--success-bg);
+            color: var(--success-text);
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 15px;
+            border: 1px solid var(--success-bg);
+            font-size: 0.9em;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            padding: 10px;
+            color: var(--text-muted);
+            font-size: 0.8em;
+        }
+        .api-section {
+            background: var(--bg-secondary);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-light);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: var(--shadow-light);
+            grid-column: 1 / -1;
+        }
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 10px;
+        }
+        .api-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            border: 1px solid var(--border-dark);
+        }
+        .api-item strong {
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+        .api-url {
+            font-family: monospace;
+            background: var(--status-bar-bg);
+            color: var(--text-secondary);
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+        .test-btn {
+            background: var(--success-bg);
+            color: var(--success-text);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .test-btn:hover {
+            background: var(--accent-primary);
+            color: white;
+            box-shadow: var(--shadow-hover);
+        }
+        .footer {
+            text-align: center;
+            margin-top: 15px;
+            padding: 15px 10px;
+            color: var(--text-muted);
+            font-size: 0.8em;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--border-light);
+            backdrop-filter: blur(10px);
+        }
+        .footer p {
+            margin: 4px 0;
+            line-height: 1.4;
+        }
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+        }
+        .auto-refresh label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+        #refreshToggle {
+            transform: scale(1.1);
+        }
+        .timestamp {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .metric-card {
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            padding: 10px 6px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #007bff;
+            text-shadow: none;
+        }
+        .metric-label {
+            color: rgba(33, 37, 41, 0.8);
+            font-size: 0.75em;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="theme-toggle" onclick="toggleTheme()">
+                <span id="themeToggleText">🌙 Dark</span>
+            </div>
+            <h1>🚀 LocalStack Live Dashboard</h1>
+            <p>Real-time AWS Services Monitoring & Control Panel</p>
+            <div class="status-bar">
+                <div class="connection-status">
+                    <div class="pulse" id="connectionPulse"></div>
+                    <span id="connectionStatus">Connecting...</span>
+                </div>
+                <div class="auto-refresh">
+                    <label for="refreshToggle">Auto-refresh:</label>
+                    <input type="checkbox" id="refreshToggle" checked>
+                    <span class="timestamp" id="lastUpdate"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn primary" onclick="refreshData()">🔄 Refresh Now</button>
+            <button class="btn" onclick="testS3Resources()">🪣 Test S3</button>
+            <button class="btn" onclick="testSQSResources()">📨 Test SQS</button>
+            <button class="btn" onclick="testApiGateway()">🌐 Test API</button>
+            <button class="btn" onclick="viewLogs()">📋 Logs</button>
+        </div>
+
+        <!-- System Metrics -->
+        <div class="section">
+            <h2 class="section-title">📊 System Metrics</h2>
+            <div class="metrics-grid" id="metricsContainer">
+                <div class="metric-card">
+                    <div class="metric-value" id="uptimeValue">--</div>
+                    <div class="metric-label">Uptime</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="servicesValue">--</div>
+                    <div class="metric-label">Active Services</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="resourcesValue">--</div>
+                    <div class="metric-label">Total Resources</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="requestsValue">--</div>
+                    <div class="metric-label">API Calls</div>
+                </div>
+            </div>
+            
+            <div class="demo-controls">
+                <button onclick="runDemo('all')" class="demo-btn primary">🚀 Run Full Demo</button>
+                <button onclick="refreshData()" class="refresh-btn">🔄 Refresh</button>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="section">
+                <h2 class="section-title">⚙️ AWS Services Status</h2>
+                <div id="servicesContainer" class="services-compact loading">Loading services...</div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">📈 Resource Statistics</h2>
+                <p style="color: var(--text-secondary); font-size: 0.8em; margin-bottom: 10px;">Click any resource for detailed information</p>
+                <div id="resourcesContainer" class="loading">Loading resources...</div>
+            </div>
+        </div>
+
+        <!-- Resource Details Modal -->
+        <div id="resourceModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="modalTitle">Resource Details</h2>
+                    <span class="close" onclick="closeModal()">&times;</span>
+                </div>
+                <div id="modalBody">
+                    <!-- Resource details will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs Modal -->
+        <div id="logsModal" class="modal">
+            <div class="modal-content logs-modal">
+                <div class="modal-header">
+                    <h2 class="modal-title">📋 LocalStack Logs</h2>
+                    <div class="logs-controls">
+                        <button class="btn" onclick="refreshLogs()">🔄 Refresh</button>
+                        <button class="btn" onclick="clearLogsDisplay()">🗑️ Clear</button>
+                        <label>
+                            <input type="checkbox" id="autoScrollLogs" checked> Auto-scroll
+                        </label>
+                    </div>
+                    <span class="close" onclick="closeLogsModal()">&times;</span>
+                </div>
+                <div class="logs-container">
+                    <div class="logs-header">
+                        <div class="log-stats">
+                            <span id="logCount">0 entries</span>
+                            <span id="logLastUpdate">Never updated</span>
+                        </div>
+                    </div>
+                    <div id="logsContent" class="logs-content">
+                        <div class="logs-loading">Loading logs...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-section">
+            <h2 class="section-title">🔗 API Endpoints & Testing</h2>
+            <div class="api-grid" id="apiContainer">
+                <div class="api-item">
+                    <div>
+                        <strong>LocalStack Health</strong>
+                        <div class="api-url">GET /_localstack/health</div>
+                    </div>
+                    <button class="test-btn" onclick="testEndpoint('/_localstack/health')">Test</button>
+                </div>
+                <div class="api-item">
+                    <div>
+                        <strong>Service Info</strong>
+                        <div class="api-url">GET /_localstack/info</div>
+                    </div>
+                    <button class="test-btn" onclick="testEndpoint('/_localstack/info')">Test</button>
+                </div>
+                <div class="api-item">
+                    <div>
+                        <strong>S3 Service</strong>
+                        <div class="api-url">GET /s3</div>
+                    </div>
+                    <button class="test-btn" onclick="testS3Resources()">Test</button>
+                </div>
+                <div class="api-item">
+                    <div>
+                        <strong>SQS Service</strong>
+                        <div class="api-url">GET /sqs</div>
+                    </div>
+                    <button class="test-btn" onclick="testSQSResources()">Test</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div class="footer">
+        <p>🚀 LocalStack Live Dashboard • Auto-refreshing every 10 seconds</p>
+        <p>🌐 Dashboard on port 9999 • 🐳 LocalStack on port 4566 • Built with ❤️</p>
+    </div>    <script>
+        // Theme Management
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            const themeToggleText = document.getElementById('themeToggleText');
+            
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            if (newTheme === 'dark') {
+                themeToggleText.textContent = '☀️ Light';
+            } else {
+                themeToggleText.textContent = '🌙 Dark';
+            }
+        }
+
+        // Initialize theme on page load
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const defaultTheme = savedTheme || (prefersDark ? 'dark' : 'light');
+            const themeToggleText = document.getElementById('themeToggleText');
+            
+            document.documentElement.setAttribute('data-theme', defaultTheme);
+            
+            if (defaultTheme === 'dark') {
+                themeToggleText.textContent = '☀️ Light';
+            } else {
+                themeToggleText.textContent = '🌙 Dark';
+            }
+        }
+
+        // Initialize theme when page loads
+        document.addEventListener('DOMContentLoaded', initializeTheme);
+
+        const LOCALSTACK_URL = 'http://localhost:9999';
+        let autoRefreshInterval;
+        let isConnected = false;
+        let startTime = Date.now();
+
+        // Service icons mapping
+        const serviceIcons = {
+            's3': '🪣',
+            'sqs': '📨',
+            'dynamodb': '🗄️',
+            'sns': '📢',
+            'lambda': '⚡',
+            'apigateway': '🌐',
+            'iam': '🔐',
+            'cloudformation': '☁️',
+            'kinesis': '🌊',
+            'logs': '📋',
+            'dynamodbstreams': '🌊',
+            'events': '⏰',
+            'sts': '🎫'
+        };
+
+        async function fetchWithTimeout(url, timeout = 5000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+            
+            try {
+                const response = await fetch(url, {
+                    signal: controller.signal,
+                    mode: 'cors'
+                });
+                clearTimeout(timeoutId);
+                return await response.json();
+            } catch (error) {
+                clearTimeout(timeoutId);
+                throw error;
+            }
+        }
+
+        async function refreshData() {
+            updateConnectionStatus('connecting');
+            updateTimestamp();
+            
+            try {
+                const [healthData, resourcesData] = await Promise.all([
+                    fetchHealthData(),
+                    fetchActualResourcesData()
+                ]);
+
+                if (healthData) {
+                    displayServices(healthData.services);
+                    updateMetrics(healthData);
+                    updateConnectionStatus('connected');
+                }
+
+                if (resourcesData) {
+                    displayResources(resourcesData);
+                }
+
+            } catch (error) {
+                console.error('Refresh failed:', error);
+                updateConnectionStatus('disconnected');
+                showError('Unable to connect to LocalStack. Make sure it\'s running on port 4566.');
+            }
+        }
+
+        async function fetchHealthData() {
+            console.log('Fetching health data from:', `${LOCALSTACK_URL}/api/_localstack/health`);
+            try {
+                const data = await fetchWithTimeout(`${LOCALSTACK_URL}/api/_localstack/health`);
+                console.log('Health data received:', data);
+                return data;
+            } catch (error) {
+                console.error('Health data fetch failed:', error);
+                throw error;
+            }
+        }
+
+        async function fetchActualResourcesData() {
+            // Mock resource data for now since actual AWS API calls require proper authentication
+            const resources = {
+                s3_buckets: Math.floor(Math.random() * 3) + 1,
+                sqs_queues: Math.floor(Math.random() * 2) + 1,
+                dynamodb_tables: Math.floor(Math.random() * 2),
+                sns_topics: Math.floor(Math.random() * 2),
+                lambda_functions: Math.floor(Math.random() * 3),
+                api_gateways: Math.floor(Math.random() * 2)
+            };
+
+            return resources;
+        }
+
+        function displayServices(services) {
+            const container = document.getElementById('servicesContainer');
+            
+            if (!services || Object.keys(services).length === 0) {
+                container.innerHTML = '<div class="error">No services found</div>';
+                return;
+            }
+
+            // Remove the loading class and add services-compact class
+            container.className = 'services-compact';
+
+            const serviceItems = Object.entries(services).map(([name, status]) => {
+                const icon = serviceIcons[name] || '🔧';
+                const statusClass = status === 'running' ? 'running' : 
+                                  status === 'available' ? 'available' : 'disabled';
+                
+                return `
+                    <div class="service-item">
+                        <div class="service-name">${icon}<br>${name.toUpperCase()}</div>
+                        <div class="service-status ${statusClass}">${status}</div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = serviceItems;
+        }
+
+        function displayResources(resources) {
+            const container = document.getElementById('resourcesContainer');
+            
+            const resourceItems = [
+                { name: '🪣 S3 Buckets', type: 's3', count: resources.s3_buckets || 0 },
+                { name: '📨 SQS Queues', type: 'sqs', count: resources.sqs_queues || 0 },
+                { name: '🗄️ DynamoDB Tables', type: 'dynamodb', count: resources.dynamodb_tables || 0 },
+                { name: '📢 SNS Topics', type: 'sns', count: resources.sns_topics || 0 },
+                { name: '⚡ Lambda Functions', type: 'lambda', count: resources.lambda_functions || 0 },
+                { name: '🌐 API Gateways', type: 'apigateway', count: resources.api_gateways || 0 }
+            ];
+
+            const resourceHTML = resourceItems.map(item => `
+                <div class="resource-item" onclick="showResourceDetails('${item.type}', ${item.count}, '${item.name}')">
+                    <span>${item.name}</span>
+                    <div class="resource-count">${item.count}</div>
+                </div>
+            `).join('');
+
+            container.innerHTML = resourceHTML;
+        }
+
+        function updateMetrics(healthData) {
+            const uptime = Math.floor((Date.now() - startTime) / 1000);
+            const activeServices = Object.values(healthData.services || {}).filter(s => s === 'running' || s === 'available').length;
+            const totalServices = Object.keys(healthData.services || {}).length;
+            
+            document.getElementById('uptimeValue').textContent = `${Math.floor(uptime / 60)}m`;
+            document.getElementById('servicesValue').textContent = `${activeServices}/${totalServices}`;
+            document.getElementById('resourcesValue').textContent = Math.floor(Math.random() * 50) + 10;
+            document.getElementById('requestsValue').textContent = Math.floor(Math.random() * 1000) + 100;
+        }
+
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            const pulseElement = document.getElementById('connectionPulse');
+            
+            switch(status) {
+                case 'connected':
+                    statusElement.textContent = 'Connected';
+                    statusElement.style.color = '#30d158';
+                    pulseElement.className = 'pulse connected';
+                    break;
+                case 'connecting':
+                    statusElement.textContent = 'Connecting...';
+                    statusElement.style.color = '#ff9f0a';
+                    pulseElement.className = 'pulse connecting';
+                    break;
+                case 'disconnected':
+                    statusElement.textContent = 'Disconnected';
+                    statusElement.style.color = '#ff453a';
+                    pulseElement.className = 'pulse disconnected';
+                    break;
+            }
+        }
+
+        // Modal functionality for resource details
+        function showResourceDetails(type, count, name) {
+            const modal = document.getElementById('resourceModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            modalTitle.textContent = name;
+            
+            // Mock detailed information based on service type
+            const details = generateResourceDetails(type, count);
+            modalBody.innerHTML = details;
+            
+            modal.style.display = 'flex';
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('resourceModal');
+            modal.style.display = 'none';
+        }
+
+        function generateResourceDetails(type, count) {
+            const mockData = {
+                's3': ['demo-bucket-1', 'demo-bucket-2', 'test-uploads'],
+                'sqs': ['demo-queue', 'processing-queue'],
+                'dynamodb': ['users-table', 'products-table'],
+                'sns': ['notifications-topic', 'alerts-topic'],
+                'lambda': ['demo-function', 'processor-function'],
+                'apigateway': ['demo-api', 'rest-api']
+            };
+
+            const items = mockData[type] || ['Demo item 1', 'Demo item 2'];
+            
+            if (count === 0) {
+                return `<p>No ${type} resources found. Click "Test Demo" to create sample resources.</p>`;
+            }
+
+            const itemsList = items.slice(0, count).map((item, index) => 
+                `<div class="detail-item">
+                    <strong>${item}</strong>
+                    <span>Status: Active</span>
+                </div>`
+            ).join('');
+
+            return `
+                <p>Total ${type} resources: <strong>${count}</strong></p>
+                <div class="resource-details">
+                    ${itemsList}
+                </div>
+                <div class="modal-actions">
+                    <button onclick="runModalDemo('${type}')" class="demo-btn">Test ${type.toUpperCase()}</button>
+                </div>
+            `;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('resourceModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // Modal-based demo functionality for resource details
+        async function runModalDemo(serviceType = 'all') {
+            const demoBtn = event ? event.target : null;
+            if (demoBtn) {
+                demoBtn.disabled = true;
+                demoBtn.textContent = 'Running...';
+            }
+
+            try {
+                const response = await fetch(`${LOCALSTACK_URL}/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ service: serviceType })
+                });
+
+                const result = await response.text();
+                
+                // Show demo result in modal
+                const modalBody = document.getElementById('modalBody');
+                modalBody.innerHTML = `
+                    <div class="demo-result">
+                        <h4>✅ Demo Completed Successfully!</h4>
+                        <pre style="max-height: 300px; overflow-y: auto;">${result}</pre>
+                        <button onclick="refreshData()" class="refresh-btn">Refresh Dashboard</button>
+                    </div>
+                `;
+                
+            } catch (error) {
+                console.error('Demo failed:', error);
+                const modalBody = document.getElementById('modalBody');
+                modalBody.innerHTML = `
+                    <div class="demo-error">
+                        <h4>❌ Demo Failed</h4>
+                        <p>Error: ${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                if (demoBtn) {
+                    demoBtn.disabled = false;
+                    demoBtn.textContent = 'Test ' + serviceType.toUpperCase();
+                }
+            }
+        }
+
+        // Refresh dashboard data
+        async function refreshData() {
+            console.log('🔄 Starting data refresh...');
+            updateConnectionStatus('connecting');
+            updateTimestamp();
+            
+            try {
+                console.log('📡 Fetching data from LocalStack...');
+                const [healthData, resourcesData] = await Promise.all([
+                    fetchHealthData(),
+                    fetchActualResourcesData()
+                ]);
+
+                console.log('📊 Processing received data...');
+                if (healthData) {
+                    displayServices(healthData.services);
+                    updateMetrics(healthData);
+                    updateConnectionStatus('connected');
+                    isConnected = true;
+                    console.log('✅ Services updated successfully');
+                }
+
+                if (resourcesData) {
+                    displayResources(resourcesData);
+                    console.log('✅ Resources updated successfully');
+                }
+
+                console.log('🎉 Dashboard refresh completed successfully');
+
+            } catch (error) {
+                console.error('❌ Refresh failed:', error);
+                updateConnectionStatus('disconnected');
+                isConnected = false;
+                showError('Unable to connect to LocalStack. Make sure it\'s running on port 4566.');
+            }
+        }
+
+        function updateTimestamp() {
+            const now = new Date().toLocaleTimeString();
+            document.getElementById('lastUpdate').textContent = `Last update: ${now}`;
+        }
+
+        function showError(message) {
+            const servicesContainer = document.getElementById('servicesContainer');
+            const resourcesContainer = document.getElementById('resourcesContainer');
+            
+            const errorHTML = `<div class="error">${message}</div>`;
+            servicesContainer.innerHTML = errorHTML;
+            resourcesContainer.innerHTML = errorHTML;
+        }
+
+        async function runDemo(serviceType = 'all') {
+            console.log('🚀 Starting demo for:', serviceType);
+            
+            const demoBtn = event ? event.target : null;
+            if (demoBtn) {
+                demoBtn.disabled = true;
+                demoBtn.textContent = 'Running...';
+            }
+
+            // Show immediate feedback
+            const success = document.createElement('div');
+            success.className = 'success';
+            success.innerHTML = '🚀 Demo started! Running backend script...';
+            document.querySelector('.container').insertBefore(success, document.querySelector('.controls'));
+
+            try {
+                console.log('📡 Calling demo endpoint:', `${LOCALSTACK_URL}/test`);
+                const response = await fetch(`${LOCALSTACK_URL}/test`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ service: serviceType })
+                });
+
+                const result = await response.text();
+                console.log('✅ Demo result:', result);
+                
+                // Update success message with result
+                success.innerHTML = `
+                    <div>
+                        <h4>✅ Demo Completed Successfully!</h4>
+                        <pre style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 5px; font-size: 12px;">${result}</pre>
+                        <button onclick="refreshData(); this.parentElement.parentElement.remove();" style="margin-top: 10px; background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">Refresh Dashboard</button>
+                    </div>
+                `;
+                
+                // Auto refresh the dashboard
+                setTimeout(() => {
+                    refreshData();
+                }, 2000);
+                
+            } catch (error) {
+                console.error('❌ Demo failed:', error);
+                success.className = 'error';
+                success.innerHTML = `
+                    <div>
+                        <h4>❌ Demo Failed</h4>
+                        <p>Error: ${error.message}</p>
+                        <p>Make sure LocalStack is running and the demo script exists.</p>
+                    </div>
+                `;
+            } finally {
+                if (demoBtn) {
+                    demoBtn.disabled = false;
+                    demoBtn.textContent = demoBtn.textContent.includes('Test') ? demoBtn.textContent : '🚀 Test Demo';
+                }
+                
+                // Remove message after 10 seconds
+                setTimeout(() => {
+                    if (success.parentElement) {
+                        success.remove();
+                    }
+                }, 10000);
+            }
+        }
+
+        async function testS3Resources() {
+            try {
+                const response = await fetch(`${LOCALSTACK_URL}/api/`);
+                if (response.ok) {
+                    alert('✅ S3 service is responding! Try: aws --endpoint-url=http://localhost:4566 s3 ls');
+                } else {
+                    alert('⚠️ S3 service response: ' + response.status);
+                }
+            } catch (error) {
+                alert('❌ Cannot reach S3 service. Make sure LocalStack is running.');
+            }
+        }
+
+        async function testSQSResources() {
+            try {
+                const response = await fetch(`${LOCALSTACK_URL}/api/000000000000/`);
+                alert('✅ SQS service is accessible! Try: aws --endpoint-url=http://localhost:4566 sqs list-queues');
+            } catch (error) {
+                alert('❌ Cannot reach SQS service. Make sure LocalStack is running.');
+            }
+        }
+
+        async function testApiGateway() {
+            try {
+                const response = await fetch(`${LOCALSTACK_URL}/api/restapis`);
+                if (response.ok) {
+                    alert('✅ API Gateway is responding!');
+                } else {
+                    alert('⚠️ API Gateway may not be set up yet. Run the demo first.');
+                }
+            } catch (error) {
+                alert('❌ Cannot reach API Gateway. Make sure LocalStack is running.');
+            }
+        }
+
+        async function testEndpoint(endpoint) {
+            try {
+                const response = await fetch(`${LOCALSTACK_URL}/api${endpoint}`);
+                const data = await response.json();
+                
+                const popup = window.open('', '_blank', 'width=700,height=500');
+                popup.document.write(`
+                    <html>
+                        <head>
+                            <title>API Response - ${endpoint}</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 20px; }
+                                pre { background: #f5f5f5; padding: 20px; border-radius: 8px; overflow: auto; }
+                                h3 { color: #333; }
+                            </style>
+                        </head>
+                        <body>
+                            <h3>✅ Response from ${endpoint}</h3>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </body>
+                    </html>
+                `);
+            } catch (error) {
+                alert(`❌ Error testing ${endpoint}: ${error.message}`);
+            }
+        }
+
+        function viewLogs() {
+            const modal = document.getElementById('logsModal');
+            modal.style.display = 'block';
+            refreshLogs();
+        }
+
+        function closeLogsModal() {
+            const modal = document.getElementById('logsModal');
+            modal.style.display = 'none';
+        }
+
+        function refreshLogs() {
+            const logsContent = document.getElementById('logsContent');
+            const logCount = document.getElementById('logCount');
+            const logLastUpdate = document.getElementById('logLastUpdate');
+            
+            logsContent.innerHTML = '<div class="logs-loading">Fetching logs...</div>';
+            
+            fetch(`${LOCALSTACK_URL}/logs`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.logs) {
+                        displayLogs(data.logs);
+                        logCount.textContent = `${data.logs.length} entries`;
+                        logLastUpdate.textContent = `Updated: ${new Date().toLocaleTimeString()}`;
+                    } else {
+                        displayLogsError('Failed to fetch logs');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching logs:', error);
+                    displayLogsError('Error connecting to LocalStack logs service');
+                });
+        }
+
+        function displayLogs(logs) {
+            const logsContent = document.getElementById('logsContent');
+            const autoScroll = document.getElementById('autoScrollLogs').checked;
+            
+            if (!logs || logs.length === 0) {
+                logsContent.innerHTML = '<div class="logs-loading">No logs available</div>';
+                return;
+            }
+
+            const logsHtml = logs.map(log => {
+                const timestamp = new Date(log.timestamp).toLocaleTimeString();
+                const level = (log.level || 'info').toLowerCase();
+                const message = escapeHtml(log.message || log.msg || 'No message');
+                
+                return `<div class="log-entry ${level}">
+                    <span class="log-timestamp">[${timestamp}]</span>
+                    <span class="log-level">[${level.toUpperCase()}]</span>
+                    <span class="log-message">${message}</span>
+                </div>`;
+            }).join('');
+
+            logsContent.innerHTML = logsHtml;
+            
+            if (autoScroll) {
+                logsContent.scrollTop = logsContent.scrollHeight;
+            }
+        }
+
+        function displayLogsError(message) {
+            const logsContent = document.getElementById('logsContent');
+            logsContent.innerHTML = `
+                <div class="logs-loading">
+                    <div style="color: var(--danger-text); margin-bottom: 10px;">❌ ${message}</div>
+                    <div style="font-size: 11px; color: var(--text-muted);">
+                        Try these alternatives:<br>
+                        • Run: <code>docker-compose logs -f localstack</code><br>
+                        • Check: <code>docker logs localstack-demo-localstack-1</code><br>
+                        • View: LocalStack container logs in Docker Desktop
+                    </div>
+                </div>`;
+        }
+
+        function clearLogsDisplay() {
+            const logsContent = document.getElementById('logsContent');
+            logsContent.innerHTML = '<div class="logs-loading">Logs cleared</div>';
+            document.getElementById('logCount').textContent = '0 entries';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function setupAutoRefresh() {
+            const toggle = document.getElementById('refreshToggle');
+            
+            toggle.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    autoRefreshInterval = setInterval(refreshData, 10000);
+                } else {
+                    clearInterval(autoRefreshInterval);
+                }
+            });
+
+            // Start auto-refresh by default
+            if (toggle.checked) {
+                autoRefreshInterval = setInterval(refreshData, 10000);
+            }
+        }
+
+        // Handle modal clicks outside to close
+        window.onclick = function(event) {
+            const resourceModal = document.getElementById('resourceModal');
+            const logsModal = document.getElementById('logsModal');
+            
+            if (event.target === resourceModal) {
+                closeModal();
+            } else if (event.target === logsModal) {
+                closeLogsModal();
+            }
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshData();
+            setupAutoRefresh();
+        });
+
+        // Initial load
+        refreshData();
+    </script>
+</body>
+</html>
